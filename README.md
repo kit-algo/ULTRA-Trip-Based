@@ -24,13 +24,13 @@ All of the above commands use custom data formats for loading the public transit
 
 The algorithms in this Framework are mainly based on two previously published algorithms: ULTRA and Trip-Based Routing.
 
-* *UnLimited TRAnsfers for Multi-Modal Route Planning: An Efficient Solution*
-  Moritz Baum, Valentin Buchhold, Jonas Sauer, Dorothea Wagner, Tobias Zündorf
-  In: Proceedings of the 27th Annual European Symposium on Algorithms (ESA'19), Leibniz International Proceedings in Informatics, pages 14:1–14:16, 2019
+* *UnLimited TRAnsfers for Multi-Modal Route Planning: An Efficient Solution*  
+  Moritz Baum, Valentin Buchhold, Jonas Sauer, Dorothea Wagner, Tobias Zündorf  
+  In: Proceedings of the 27th Annual European Symposium on Algorithms (ESA'19), Leibniz International Proceedings in Informatics, pages 14:1–14:16, 2019  
   [pdf](https://drops.dagstuhl.de/opus/volltexte/2019/11135/pdf/LIPIcs-ESA-2019-14.pdf) [arXiv](https://arxiv.org/abs/1906.04832)
 
-* *Trip-Based Public Transit Routing*
-  Sascha Witt
-  In: Proceedings of the 23rd Annual European Symposium on Algorithms (ESA'15), Lecture Notes in Computer Science volume 9294, pages 1025--1036, 2015
+* *Trip-Based Public Transit Routing*  
+  Sascha Witt  
+  In: Proceedings of the 23rd Annual European Symposium on Algorithms (ESA'15), Lecture Notes in Computer Science volume 9294, pages 1025--1036, 2015  
   [html](https://link.springer.com/chapter/10.1007/978-3-662-48350-3_85) [arXiv](https://arxiv.org/pdf/1504.07149)
 
