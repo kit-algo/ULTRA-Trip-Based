@@ -44,7 +44,7 @@
 #include "../../Algorithms/CH/Preprocessing/StopCriterion.h"
 #include "../../Algorithms/CH/Query/CHQuery.h"
 #include "../../Algorithms/CH/CH.h"
-#include "../../Algorithms/RAPTOR/TransferShortcuts/Preprocessing/Builder.h"
+#include "../../Algorithms/RAPTOR/ULTRA/Builder.h"
 #include "../../Algorithms/TripBased/Preprocessing/StopEventGraphBuilder.h"
 
 
@@ -358,46 +358,31 @@ public:
         addParameter("Output file");
         addParameter("Number of threads", "1");
         addParameter("Pin multiplier", "1");
-        addParameter("Allow reboarding of trips", "false");
+        addParameter("Prune with existing shortcuts", "true");
         addParameter("Require direct transfer", "false");
     }
 
     virtual void execute() noexcept {
-        const std::string raptorFileName = getParameter("RAPTOR file");
-        const int walkingLimit = getParameter<int>("Walking limit");
-        const std::string outputFileName = getParameter("Output file");
-        const int numberOfthreads = getNumberOfThreads();
-        const int pinMultiplier = getParameter<int>("Pin multiplier");
-        const bool allowReboardingOfTrips = getParameter<bool>("Allow reboarding of trips");
+        const std::string raptorFile = getParameter("RAPTOR file");
+        const size_t walkingLimit = getParameter<size_t>("Walking limit");
+        const std::string outputFile = getParameter("Output file");
+        const size_t numberOfThreads = getNumberOfThreads();
+        const size_t pinMultiplier = getParameter<size_t>("Pin multiplier");
+        const bool pruneWithExistingShortcuts = getParameter<bool>("Prune with existing shortcuts");
         const bool requireDirectTransfer = getParameter<bool>("Require direct transfer");
-        RAPTOR::Data data = RAPTOR::Data::FromBinary(raptorFileName);
+
+        RAPTOR::Data data = RAPTOR::Data::FromBinary(raptorFile);
         data.useImplicitDepartureBufferTimes();
         data.printInfo();
-        if (allowReboardingOfTrips) {
-            RAPTOR::TransferShortcuts::Preprocessing::Builder<true> shortcutGraphBuilder(data);
-            std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfthreads << " threads)." << std::endl;
-            shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfthreads, pinMultiplier), walkingLimit);
-            Graph::move(std::move(shortcutGraphBuilder.getShortcutGraph()), data.transferGraph);
-        } else {
-            if (requireDirectTransfer) {
-                RAPTOR::TransferShortcuts::Preprocessing::Builder<false, false, true, true> shortcutGraphBuilder(data);
-                std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfthreads << " threads)." << std::endl;
-                shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfthreads, pinMultiplier), walkingLimit);
-                Graph::move(std::move(shortcutGraphBuilder.getShortcutGraph()), data.transferGraph);
-            } else {
-                RAPTOR::TransferShortcuts::Preprocessing::Builder<false, false, true, false> shortcutGraphBuilder(data);
-                std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfthreads << " threads)." << std::endl;
-                shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfthreads, pinMultiplier), walkingLimit);
-                Graph::move(std::move(shortcutGraphBuilder.getShortcutGraph()), data.transferGraph);
-            }
-        }
+        choosePrune(data, numberOfThreads, pinMultiplier, walkingLimit, requireDirectTransfer, pruneWithExistingShortcuts);
         data.dontUseImplicitDepartureBufferTimes();
         Graph::printInfo(data.transferGraph);
         data.transferGraph.printAnalysis();
-        data.serialize(outputFileName);
+        data.serialize(outputFile);
     }
 
-    inline int getNumberOfThreads() const noexcept {
+private:
+    inline size_t getNumberOfThreads() const noexcept {
         if (getParameter("Number of threads") == "max") {
             return numberOfCores();
         } else {
@@ -405,4 +390,30 @@ public:
         }
     }
 
+    inline void choosePrune(RAPTOR::Data& data, const size_t numberOfThreads, const size_t pinMultiplier, const size_t walkingLimit, const bool requireDirectTransfer, const bool pruneWithExistingShortcuts) const noexcept {
+        if (pruneWithExistingShortcuts) {
+            chooseRequireDirectTransfer<true>(data, numberOfThreads, pinMultiplier, walkingLimit, requireDirectTransfer);
+        } else {
+            chooseRequireDirectTransfer<false>(data, numberOfThreads, pinMultiplier, walkingLimit, requireDirectTransfer);
+        }
+    }
+
+    template<bool PRUNE_WITH_EXISTING_SHORTCUTS>
+    inline void chooseRequireDirectTransfer(RAPTOR::Data& data, const size_t numberOfThreads, const size_t pinMultiplier, const size_t walkingLimit, const bool requireDirectTransfer) const noexcept {
+        if (requireDirectTransfer) {
+            run<PRUNE_WITH_EXISTING_SHORTCUTS, true>(data, numberOfThreads, pinMultiplier, walkingLimit);
+        } else {
+            run<PRUNE_WITH_EXISTING_SHORTCUTS, false>(data, numberOfThreads, pinMultiplier, walkingLimit);
+        }
+    }
+
+    template<bool PRUNE_WITH_EXISTING_SHORTCUTS, bool REQUIRE_DIRECT_TRANSFER>
+    inline void run(RAPTOR::Data& data, const size_t numberOfThreads, const size_t pinMultiplier, const size_t walkingLimit) const noexcept {
+        RAPTOR::ULTRA::Builder<false, PRUNE_WITH_EXISTING_SHORTCUTS, REQUIRE_DIRECT_TRANSFER> shortcutGraphBuilder(data);
+        std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfThreads << " threads)." << std::endl;
+        Timer timer;
+        shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfThreads, pinMultiplier), walkingLimit);
+        std::cout << "Took " << String::msToString(timer.elapsedMilliseconds()) << std::endl;
+        Graph::move(std::move(shortcutGraphBuilder.getShortcutGraph()), data.transferGraph);
+    }
 };

@@ -44,7 +44,7 @@
 #include "../../Algorithms/CH/CH.h"
 #include "../../Algorithms/RAPTOR/ULTRARAPTOR.h"
 #include "../../Algorithms/TripBased/Preprocessing/StopEventGraphBuilder.h"
-#include "../../Algorithms/TripBased/Preprocessing/StopEventGraphBuilderUsingULTRA.h"
+#include "../../Algorithms/TripBased/Preprocessing/ULTRABuilder.h"
 #include "../../Algorithms/TripBased/Query/Query.h"
 #include "../../Algorithms/TripBased/Query/TransitiveQuery.h"
 #include "../../Algorithms/Dijkstra/Dijkstra.h"
@@ -279,7 +279,6 @@ public:
         addParameter("Num threads", "0");
         addParameter("Thread offset", "1");
         addParameter("Walking limit");
-        addParameter("Require direct transfer", "false");
     }
 
     virtual void execute() noexcept {
@@ -288,27 +287,18 @@ public:
         const int numberOfthreads = getNumberOfThreads();
         const int pinMultiplier = getParameter<int>("Thread offset");
         const int walkingLimit = getParameter<int>("Walking limit");
-        const bool requireDirectTransfer = getParameter<bool>("Require direct transfer");
 
         RAPTOR::Data raptor = RAPTOR::Data::FromBinary(inputFile);
         raptor.printInfo();
         TripBased::Data data(raptor);
 
-        if (requireDirectTransfer) {
-            TripBased::StopEventGraphBuilderUsingULTRA<false, false, true> shortcutGraphBuilder(data);
-            std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfthreads << " threads)." << std::endl;
-            shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfthreads, pinMultiplier), walkingLimit);
-            Graph::move(std::move(shortcutGraphBuilder.getStopEventGraph()), data.stopEventGraph);
-        } else {
-            TripBased::StopEventGraphBuilderUsingULTRA<false, false, false> shortcutGraphBuilder(data);
-            std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfthreads << " threads)." << std::endl;
-            shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfthreads, pinMultiplier), walkingLimit);
-            Graph::move(std::move(shortcutGraphBuilder.getStopEventGraph()), data.stopEventGraph);
-        }
+        TripBased::ULTRABuilder shortcutGraphBuilder(data);
+        std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfthreads << " threads)." << std::endl;
+        shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfthreads, pinMultiplier), walkingLimit);
+        Graph::move(std::move(shortcutGraphBuilder.getStopEventGraph()), data.stopEventGraph);
 
         data.printInfo();
         data.serialize(outputFile);
-        std::cout << "Finished ULTRA-Trip-Based preprocessing" << std::endl;
     }
 
 private:

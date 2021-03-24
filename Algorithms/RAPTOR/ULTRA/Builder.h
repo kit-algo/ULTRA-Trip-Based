@@ -22,24 +22,23 @@
 
 #include <algorithm>
 
-#include "../../../../DataStructures/RAPTOR/Data.h"
-#include "../../../../Helpers/MultiThreading.h"
-#include "../../../../Helpers/Timer.h"
-#include "../../../../Helpers/Console/Progress.h"
+#include "../../../DataStructures/RAPTOR/Data.h"
+#include "../../../Helpers/MultiThreading.h"
+#include "../../../Helpers/Timer.h"
+#include "../../../Helpers/Console/Progress.h"
 
-#include "RangeSearchUsingStations.h"
+#include "ShortcutSearch.h"
 
-namespace RAPTOR::TransferShortcuts::Preprocessing {
+namespace RAPTOR::ULTRA {
 
-template<bool ALLOW_REBOARDING_OF_TRIPS, bool DEBUG = false, bool PRUNE_WITH_EXISTING_SHORTCUTS = true, bool REQUIRE_DIRECT_TRANSFER = false>
+template<bool DEBUG = false, bool PRUNE_WITH_EXISTING_SHORTCUTS = true, bool REQUIRE_DIRECT_TRANSFER = false>
 class Builder {
 
 public:
-    inline static constexpr bool AllowReboardingOfTrips = ALLOW_REBOARDING_OF_TRIPS;
     inline static constexpr bool Debug = DEBUG;
     inline static constexpr bool PruneWithExistingShortcuts = PRUNE_WITH_EXISTING_SHORTCUTS;
     inline static constexpr bool RequireDirectTransfer = REQUIRE_DIRECT_TRANSFER;
-    using Type = Builder<AllowReboardingOfTrips, Debug, PruneWithExistingShortcuts, RequireDirectTransfer>;
+    using Type = Builder<Debug, PruneWithExistingShortcuts, RequireDirectTransfer>;
 
 public:
     Builder(const Data& data) :
@@ -50,7 +49,7 @@ public:
         }
     }
 
-    void computeShortcuts(const ThreadPinning& threadPinning, const int maxInitialWalking = 15 * 60, const int minDepartureTime = -never, const int maxDepartureTime = never, const bool verbose = true) noexcept {
+    void computeShortcuts(const ThreadPinning& threadPinning, const int witnessTransferLimit = 15 * 60, const int minDepartureTime = -never, const int maxDepartureTime = never, const bool verbose = true) noexcept {
         if (verbose) std::cout << "Computing shortcuts with " << threadPinning.numberOfThreads << " threads." << std::endl;
 
         Progress progress(data.numberOfStops(), verbose);
@@ -60,11 +59,11 @@ public:
             threadPinning.pinThread();
 
             DynamicTransferGraph localShortcutGraph = shortcutGraph;
-            RangeSearchUsingStations<AllowReboardingOfTrips, PruneWithExistingShortcuts, Debug, RequireDirectTransfer> rangeSearch(data, localShortcutGraph, maxInitialWalking);
+            ShortcutSearch<PruneWithExistingShortcuts, Debug, RequireDirectTransfer> shortcutSearch(data, localShortcutGraph, witnessTransferLimit);
 
             #pragma omp for schedule(dynamic)
             for (size_t i = 0; i < data.numberOfStops(); i++) {
-                rangeSearch.run(StopId(i), minDepartureTime, maxDepartureTime);
+                shortcutSearch.run(StopId(i), minDepartureTime, maxDepartureTime);
                 progress++;
             }
 
