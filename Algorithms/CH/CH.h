@@ -55,9 +55,13 @@ public:
         Graph::move(std::move(backwardCH), backward);
     }
 
-    template<typename DEBUGGER, typename WITNESS_SEARCH, typename KEY_FUNCTION, typename STOP_CRITERION, bool BUILD_Q_LINEAR, bool BREAK_KEY_TIES_BY_ID>
-    CH(Builder<DEBUGGER, WITNESS_SEARCH, KEY_FUNCTION, STOP_CRITERION, BUILD_Q_LINEAR, BREAK_KEY_TIES_BY_ID>&& builder) :
-        CH(std::move(builder.getData().forwardCH), std::move(builder.getData().backwardCH)) {
+    CH(Data&& data) :
+        CH(std::move(data.forwardCH), std::move(data.backwardCH)) {
+    }
+
+    template<typename PROFILER, typename WITNESS_SEARCH, typename KEY_FUNCTION, typename STOP_CRITERION, bool BUILD_Q_LINEAR, bool BREAK_KEY_TIES_BY_ID>
+    CH(Builder<PROFILER, WITNESS_SEARCH, KEY_FUNCTION, STOP_CRITERION, BUILD_Q_LINEAR, BREAK_KEY_TIES_BY_ID>&& builder) :
+        CH(std::move(builder.getData())) {
     }
 
     CH(const std::string& fileName, const std::string& separator = ".") {

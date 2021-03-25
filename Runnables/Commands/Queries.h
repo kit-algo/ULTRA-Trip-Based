@@ -25,29 +25,16 @@
 #include <random>
 #include <vector>
 #include <string>
-#include <optional>
 #include <cmath>
 
 #include "../../Shell/Shell.h"
 
-#include "../../DataStructures/Intermediate/Data.h"
 #include "../../DataStructures/RAPTOR/Data.h"
-#include "../../DataStructures/Geometry/Point.h"
+#include "../../DataStructures/TripBased/Data.h"
 
-#include "../../Algorithms/StronglyConnectedComponents.h"
-#include "../../Algorithms/CH/Preprocessing/CHBuilder.h"
-#include "../../Algorithms/CH/Preprocessing/Debugger.h"
-#include "../../Algorithms/CH/Preprocessing/WitnessSearch.h"
-#include "../../Algorithms/CH/Preprocessing/BidirectionalWitnessSearch.h"
-#include "../../Algorithms/CH/Preprocessing/StopCriterion.h"
-#include "../../Algorithms/CH/Query/CHQuery.h"
-#include "../../Algorithms/CH/CH.h"
 #include "../../Algorithms/RAPTOR/ULTRARAPTOR.h"
-#include "../../Algorithms/TripBased/Preprocessing/StopEventGraphBuilder.h"
-#include "../../Algorithms/TripBased/Preprocessing/ULTRABuilder.h"
 #include "../../Algorithms/TripBased/Query/Query.h"
 #include "../../Algorithms/TripBased/Query/TransitiveQuery.h"
-#include "../../Algorithms/Dijkstra/Dijkstra.h"
 
 using namespace Shell;
 
@@ -264,50 +251,6 @@ private:
         const double time = timer.elapsedMilliseconds();
         std::cout << "Done in " << String::msToString(time) << " (" << String::prettyDouble(time / queries.size(), 1) << "ms per query)" << std::endl;
         algorithm.debug(queries.size());
-    }
-
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// RaptorToTripBasedUsingULTRA //////////////////////////////////////////////////////////////////////
-class RaptorToTripBasedUsingULTRA : public ParameterizedCommand {
-
-public:
-    RaptorToTripBasedUsingULTRA(BasicShell& shell) :
-        ParameterizedCommand(shell, "raptorToTripBasedUsingULTRA", "Converts binary RAPTOR data to the Trip-Based transit format.") {
-        addParameter("Input file");
-        addParameter("Output file");
-        addParameter("Num threads", "0");
-        addParameter("Thread offset", "1");
-        addParameter("Walking limit");
-    }
-
-    virtual void execute() noexcept {
-        const std::string inputFile = getParameter("Input file");
-        const std::string outputFile = getParameter("Output file");
-        const int numberOfthreads = getNumberOfThreads();
-        const int pinMultiplier = getParameter<int>("Thread offset");
-        const int walkingLimit = getParameter<int>("Walking limit");
-
-        RAPTOR::Data raptor = RAPTOR::Data::FromBinary(inputFile);
-        raptor.printInfo();
-        TripBased::Data data(raptor);
-
-        TripBased::ULTRABuilder shortcutGraphBuilder(data);
-        std::cout << "Computing Transfer Shortcuts (parallel with " << numberOfthreads << " threads)." << std::endl;
-        shortcutGraphBuilder.computeShortcuts(ThreadPinning(numberOfthreads, pinMultiplier), walkingLimit);
-        Graph::move(std::move(shortcutGraphBuilder.getStopEventGraph()), data.stopEventGraph);
-
-        data.printInfo();
-        data.serialize(outputFile);
-    }
-
-private:
-    inline int getNumberOfThreads() const noexcept {
-        if (getParameter("Num threads") == "max") {
-            return numberOfCores();
-        } else {
-            return getParameter<int>("Num threads");
-        }
     }
 
 };

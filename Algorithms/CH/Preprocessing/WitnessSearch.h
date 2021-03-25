@@ -34,32 +34,32 @@
 
 namespace CH {
 
-template<typename GRAPH, typename DEBUGGER, int Q_POP_LIMIT = -1, bool ADAPTIVE_Q_POP_LIMIT = true>
+template<typename GRAPH, typename PROFILER, int Q_POP_LIMIT = -1, bool ADAPTIVE_Q_POP_LIMIT = true>
 class NoWitnessSearch {
 
 public:
     using Graph = GRAPH;
-    using Debugger = DEBUGGER;
+    using Profiler = PROFILER;
     constexpr static int QPopLimit = Q_POP_LIMIT;
     constexpr static bool AdaptiveQPopLimit = ADAPTIVE_Q_POP_LIMIT;
-    using Type = NoWitnessSearch<Graph, Debugger, QPopLimit, AdaptiveQPopLimit>;
+    using Type = NoWitnessSearch<Graph, Profiler, QPopLimit, AdaptiveQPopLimit>;
 
 public:
-    inline void initialize(const GRAPH*, const std::vector<int>*, Debugger*) noexcept {}
+    inline void initialize(const GRAPH*, const std::vector<int>*, Profiler*) noexcept {}
     inline bool shortcutIsNecessary(const Vertex, const Vertex, const Vertex, const int) noexcept {return true;}
     inline void reset() {}
 
 };
 
-template<typename GRAPH, typename DEBUGGER, int Q_POP_LIMIT = -1, bool ADAPTIVE_Q_POP_LIMIT = true>
+template<typename GRAPH, typename PROFILER, int Q_POP_LIMIT = -1, bool ADAPTIVE_Q_POP_LIMIT = true>
 class WitnessSearch {
 
 public:
     using Graph = GRAPH;
-    using Debugger = DEBUGGER;
+    using Profiler = PROFILER;
     constexpr static int QPopLimit = Q_POP_LIMIT;
     constexpr static bool AdaptiveQPopLimit = ADAPTIVE_Q_POP_LIMIT;
-    using Type = WitnessSearch<Graph, Debugger, QPopLimit, AdaptiveQPopLimit>;
+    using Type = WitnessSearch<Graph, Profiler, QPopLimit, AdaptiveQPopLimit>;
 
 private:
     struct VertexLabel : public ExternalKHeapElement {
@@ -84,20 +84,20 @@ public:
         currentVia(noVertex),
         qPops(0),
         qPopLimit(0),
-        debugger(0) {
+        profiler(0) {
     }
 
-    inline void initialize(const Graph* graph, const std::vector<int>* weight, Debugger* debugger) noexcept {
+    inline void initialize(const Graph* graph, const std::vector<int>* weight, Profiler* profiler) noexcept {
         this->graph = graph;
         this->weight = weight;
-        this->debugger = debugger;
+        this->profiler = profiler;
         Q.reserve(graph->numVertices());
         std::vector<VertexLabel>(graph->numVertices()).swap(label);
         reset();
     }
 
     inline bool shortcutIsNecessary(const Vertex from, const Vertex to, const Vertex via, const int shortcutDistance, const bool = false) noexcept {
-        debugger->startWitnessSearch();
+        profiler->startWitnessSearch();
         if ((currentFrom != from) || (currentVia != via)) {
             currentFrom = from;
             currentVia = via;
@@ -138,10 +138,10 @@ public:
                     if (qPops > QPopLimit) break;
                 }
             }
-            debugger->settledVertex();
+            profiler->settledVertex();
         }
 
-        debugger->doneWitnessSearch();
+        profiler->doneWitnessSearch();
         return getLabel(to).distance > shortcutDistance;
     }
 
@@ -169,7 +169,7 @@ private:
     int qPops;
     int qPopLimit;
 
-    Debugger* debugger;
+    Profiler* profiler;
 
 };
 

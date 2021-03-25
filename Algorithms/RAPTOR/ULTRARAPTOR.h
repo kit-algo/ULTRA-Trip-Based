@@ -88,12 +88,12 @@ public:
         debugger.initialize(data);
     }
 
-    template<typename = std::enable_if_t<Meta::Equals<CHGraph, InitialTransferGraph>()>>
+    template<typename T = CHGraph, typename = std::enable_if_t<Meta::Equals<T, CHGraph>() && Meta::Equals<T, InitialTransferGraph>()>>
     ULTRARAPTOR(const Data& data, const CH::CH& chData, const Debugger& debuggerTemplate = Debugger()) :
         ULTRARAPTOR(data, chData.forward, chData.backward, Weight, debuggerTemplate) {
     }
 
-    template<typename = std::enable_if_t<Meta::Equals<TransferGraph, InitialTransferGraph>()>>
+    template<typename T = TransferGraph, typename = std::enable_if_t<Meta::Equals<T, TransferGraph>() && Meta::Equals<T, InitialTransferGraph>()>>
     ULTRARAPTOR(const Data& data, const TransferGraph& forwardGraph, const TransferGraph& backwardGraph, const Debugger& debuggerTemplate = Debugger()) :
         ULTRARAPTOR(data, forwardGraph, backwardGraph, TravelTime, debuggerTemplate) {
     }

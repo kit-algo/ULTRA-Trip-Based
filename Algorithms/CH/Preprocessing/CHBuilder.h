@@ -31,27 +31,26 @@
 #include "KeyFunction.h"
 #include "WitnessSearch.h"
 #include "StopCriterion.h"
-#include "Debugger.h"
-
 #include "../../../DataStructures/Graph/Graph.h"
 #include "../../../DataStructures/Container/ExternalKHeap.h"
 
 #include "../../../Helpers/Timer.h"
+#include "Profiler.h"
 
 namespace CH {
 
-template<typename DEBUGGER = NoDebugger, typename WITNESS_SEARCH = NoWitnessSearch<CHConstructionGraph, DEBUGGER>, typename KEY_FUNCTION = GreedyKey<WITNESS_SEARCH>, typename STOP_CRITERION = NoStopCriterion, bool BUILD_Q_LINEAR = false, bool BREAK_KEY_TIES_BY_ID = false, bool SORT_SHORTCUTS = false>
+template<typename PROFILER = NoProfiler, typename WITNESS_SEARCH = NoWitnessSearch<CHConstructionGraph, PROFILER>, typename KEY_FUNCTION = GreedyKey<WITNESS_SEARCH>, typename STOP_CRITERION = NoStopCriterion, bool BUILD_Q_LINEAR = false, bool BREAK_KEY_TIES_BY_ID = false, bool SORT_SHORTCUTS = false>
 class Builder {
 
 public:
-    using Debugger = DEBUGGER;
+    using Profiler = PROFILER;
     using WitnessSearch = WITNESS_SEARCH;
     using KeyFunction = KEY_FUNCTION;
     using StopCriterion = STOP_CRITERION;
     constexpr static bool BuildQLinear = BUILD_Q_LINEAR;
     constexpr static bool BreakKeyTiesById = BREAK_KEY_TIES_BY_ID;
     constexpr static bool SortShortcuts = SORT_SHORTCUTS;
-    using Type = Builder<Debugger, WitnessSearch, KeyFunction, StopCriterion, BuildQLinear, BreakKeyTiesById, SortShortcuts>;
+    using Type = Builder<Profiler, WitnessSearch, KeyFunction, StopCriterion, BuildQLinear, BreakKeyTiesById, SortShortcuts>;
 
 private:
     using KeyType = typename KEY_FUNCTION::KeyType;
@@ -78,50 +77,50 @@ private:
 
 public:
     template<typename GRAPH, typename WEIGHT>
-    Builder(GRAPH&& graph, const WEIGHT& weight, const KeyFunction& keyFunction = KeyFunction(), const StopCriterion& stopCriterion = StopCriterion(), const WitnessSearch& witnessSearch = WitnessSearch(), const Debugger& debugger = Debugger()) :
+    Builder(GRAPH&& graph, const WEIGHT& weight, const KeyFunction& keyFunction = KeyFunction(), const StopCriterion& stopCriterion = StopCriterion(), const WitnessSearch& witnessSearch = WitnessSearch(), const Profiler& profiler = Profiler()) :
         data(std::move(graph), weight),
         keyFunction(keyFunction),
         witnessSearch(witnessSearch),
         stopCriterion(stopCriterion),
-        debugger(debugger),
+        profiler(profiler),
         Q(data.numVertices),
         label(data.numVertices) {
     }
 
-    Builder(CHCoreGraph&& graph, const KeyFunction& keyFunction = KeyFunction(), const StopCriterion& stopCriterion = StopCriterion(), const WitnessSearch& witnessSearch = WitnessSearch(), const Debugger& debugger = Debugger()) :
+    Builder(CHCoreGraph&& graph, const KeyFunction& keyFunction = KeyFunction(), const StopCriterion& stopCriterion = StopCriterion(), const WitnessSearch& witnessSearch = WitnessSearch(), const Profiler& profiler = Profiler()) :
         data(std::move(graph)),
         keyFunction(keyFunction),
         witnessSearch(witnessSearch),
         stopCriterion(stopCriterion),
-        debugger(debugger),
+        profiler(profiler),
         Q(data.numVertices),
         label(data.numVertices) {
     }
 
-    Builder(Data&& originalData, const KeyFunction& keyFunction = KeyFunction(), const StopCriterion& stopCriterion = StopCriterion(), const WitnessSearch& witnessSearch = WitnessSearch(), const Debugger& debugger = Debugger()) :
+    Builder(Data&& originalData, const KeyFunction& keyFunction = KeyFunction(), const StopCriterion& stopCriterion = StopCriterion(), const WitnessSearch& witnessSearch = WitnessSearch(), const Profiler& profiler = Profiler()) :
         data(std::move(originalData)),
         keyFunction(keyFunction),
         witnessSearch(witnessSearch),
         stopCriterion(stopCriterion),
-        debugger(debugger),
+        profiler(profiler),
         Q(data.numVertices),
         label(data.numVertices) {
     }
 
     inline void run() {
         initialize<true>();
-        debugger.start();
+        profiler.start();
         buildQ<true>();
         contractQVertices();
-        debugger.done();
+        profiler.done();
     }
 
     inline void resume() {
         initialize<false>();
-        debugger.start();
+        profiler.start();
         buildQ<false>();
         contractQVertices();
-        debugger.done();
+        profiler.done();
     }
 
     inline void changeKey(const KeyFunction& keyFunction) noexcept {
@@ -141,6 +140,14 @@ public:
     inline void reKey(const Vertex vertex) noexcept {
         label[vertex].key = getKey(vertex);
         Q.update(&(label[vertex]));
+    }
+
+    inline void completeOrder() noexcept {
+        while (!Q.empty()) {
+            VertexLabel* vLabel = Q.extractFront();
+            Vertex v = Vertex(vLabel - &(label[0]));
+            data.order.push_back(v);
+        }
     }
 
     inline void copyCoreToCH() noexcept {
@@ -191,8 +198,8 @@ private:
             data.forwardCH.reserve(data.numVertices, 1.5 * data.core.numEdges());
             data.backwardCH.reserve(data.numVertices, 1.5 * data.core.numEdges());
         }
-        debugger.initialize(&data);
-        witnessSearch.initialize(&(data.core), &(data.core[Weight]), &debugger);
+        profiler.initialize(&data);
+        witnessSearch.initialize(&(data.core), &(data.core[Weight]), &profiler);
         stopCriterion.initialize(&data);
         keyFunction.initialize(&data, &witnessSearch);
     }
@@ -203,7 +210,7 @@ private:
 
     template<bool RESET_DATA>
     inline void buildQ() noexcept {
-        debugger.startBuildingQ();
+        profiler.startBuildingQ();
         Q.clear();
         std::vector<bool> alreadyContracted;
         if (!RESET_DATA) {
@@ -222,16 +229,16 @@ private:
             if constexpr (!(BuildQLinear && RESET_DATA)) {
                 Q.update(&(label[vertex]));
             }
-            debugger.enQ(vertex, label[vertex].key);
+            profiler.enQ(vertex, label[vertex].key);
         }
         if constexpr (BuildQLinear && RESET_DATA) {
             Q.build(label);
         }
-        debugger.doneBuildingQ();
+        profiler.doneBuildingQ();
     }
 
     inline void contractQVertices() noexcept {
-        debugger.startContracting();
+        profiler.startContracting();
         while (!Q.empty()) {
             keyFunction.update(*this);
             if (stopCriterion(Q)) {break;}
@@ -239,11 +246,11 @@ private:
             Vertex v = Vertex(vLabel - &(label[0]));
             contract(v);
         }
-        debugger.doneContracting();
+        profiler.doneContracting();
     }
 
     inline void contract(const Vertex vertex) noexcept {
-        debugger.startContraction(vertex);
+        profiler.startContraction(vertex);
         data.order.push_back(vertex);
         std::vector<Shortcut> shortcuts;
         for (Edge first : data.core.edgesTo(vertex)) {
@@ -258,7 +265,7 @@ private:
             std::sort(shortcuts.begin(), shortcuts.end());
         }
         for (Shortcut shortcut : shortcuts) {
-            debugger.testShortcut();
+            profiler.testShortcut();
             if (witnessSearch.shortcutIsNecessary(shortcut.from, shortcut.to, vertex, shortcut.weight)) {
                 addShortcut(shortcut.from, shortcut.to, vertex, shortcut.weight);
             }
@@ -268,18 +275,18 @@ private:
             Vertex to = data.core.get(ToVertex, edge);
             if (vertex == to) continue;
             data.forwardCH.addEdge(vertex, to).set(ViaVertex, data.core.get(ViaVertex, edge)).set(Weight, data.core.get(Weight, edge));
-            debugger.updateOutgoingNeighbor(to, label[to].key);
+            profiler.updateOutgoingNeighbor(to, label[to].key);
             neighbors.insert(to);
         }
         for (Edge edge : data.core.edgesTo(vertex)) {
             Vertex from = data.core.get(FromVertex, edge);
             if (vertex == from) continue;
             data.backwardCH.addEdge(vertex, from).set(ViaVertex, data.core.get(ViaVertex, edge)).set(Weight, data.core.get(Weight, edge));
-            debugger.updateIncomingNeighbor(from, label[from].key);
+            profiler.updateIncomingNeighbor(from, label[from].key);
             neighbors.insert(from);
         }
         data.core.isolateVertex(vertex);
-        debugger.doneContraction(vertex);
+        profiler.doneContraction(vertex);
         const uint16_t level = data.level[vertex] + 1;
         for (Vertex neighbor : neighbors) {
             data.level[neighbor] = std::max(data.level[neighbor], level);
@@ -289,7 +296,7 @@ private:
     }
 
     inline void addShortcut(const Vertex from, const Vertex to, const Vertex via, const int shortcutWeight) noexcept {
-        debugger.addShortcut();
+        profiler.addShortcut();
         Edge shortcut = data.core.findEdge(from, to);
         if (data.core.isEdge(shortcut)) {
             if (data.core.get(Weight, shortcut) > shortcutWeight) {
@@ -306,7 +313,7 @@ private:
     KeyFunction keyFunction;
     WitnessSearch witnessSearch;
     StopCriterion stopCriterion;
-    Debugger debugger;
+    Profiler profiler;
 
     ExternalKHeap<2, VertexLabel> Q;
     std::vector<VertexLabel> label;

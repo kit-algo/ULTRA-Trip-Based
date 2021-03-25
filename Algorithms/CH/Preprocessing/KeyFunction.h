@@ -1,6 +1,6 @@
 /**********************************************************************************
 
- Copyright (c) 2020 Tobias Zündorf
+ Copyright (c) 2020-2021 Tobias Zündorf, Jonas Sauer
 
  MIT License
 
@@ -33,21 +33,21 @@
 
 namespace CH {
 
-template<typename WITNESS_SEARCH, int SHORTCUT_WEIGHT = 1024, int LEVEL_WEIGHT = 1024, int DEGREE_WEIGHT = 0>
+template<typename WITNESS_SEARCH>
 class GreedyKey {
 
 public:
     using WitnessSearch = WITNESS_SEARCH;
-    constexpr static int shortcutWeight = SHORTCUT_WEIGHT;
-    constexpr static int levelWeight = LEVEL_WEIGHT;
-    constexpr static int degreeWeight = DEGREE_WEIGHT;
     using KeyType = int;
-    using Type = GreedyKey<WitnessSearch, shortcutWeight, levelWeight>;
+    using Type = GreedyKey<WitnessSearch>;
 
 public:
-    GreedyKey() :
+    GreedyKey(const int shortcutWeight = 1024, const int levelWeight = 1024, const int degreeWeight = 0) :
         data(nullptr),
-        witnessSearch(nullptr) {
+        witnessSearch(nullptr),
+        shortcutWeight(shortcutWeight),
+        levelWeight(levelWeight),
+        degreeWeight(degreeWeight) {
     }
 
     inline KeyType operator() (const Vertex vertex) noexcept {
@@ -92,6 +92,9 @@ private:
 private:
     const Data* data;
     WITNESS_SEARCH* witnessSearch;
+    const int shortcutWeight;
+    const int levelWeight;
+    const int degreeWeight;
 
 };
 

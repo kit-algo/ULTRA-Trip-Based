@@ -1,6 +1,6 @@
 /**********************************************************************************
 
- Copyright (c) 2020 Tobias Zündorf
+ Copyright (c) 2020-2021 Tobias Zündorf, Jonas Sauer
 
  MIT License
 
@@ -18,8 +18,9 @@
 
 **********************************************************************************/
 
-#include "Commands/UltraTripBased.h"
-#include "Commands/MultiModalData.h"
+#include "Commands/CH.h"
+#include "Commands/Preprocessing.h"
+#include "Commands/Queries.h"
 
 #include "../Helpers/Console/CommandLineParser.h"
 
@@ -31,14 +32,14 @@ int main(int argc, char** argv) {
     pinThreadToCoreId(clp.value<int>("core", 1));
     checkAsserts();
     ::Shell::Shell shell;
-    new GenerateUltraQueries(shell);
-    new RunUltraQueries(shell);
-    new GenerateGeoRankQueries(shell);
-    new RaptorToTripBased(shell);
-    new RaptorToTripBasedUsingULTRA(shell);
-    new UltraPreprocessing(shell);
     new BuildCH(shell);
     new CoreCH(shell);
+    new ComputeStopToStopShortcuts(shell);
+    new RAPTORToTripBased(shell);
+    new ComputeEventToEventShortcuts(shell);
+    new GenerateUltraQueries(shell);
+    new GenerateGeoRankQueries(shell);
+    new RunUltraQueries(shell);
     shell.run();
     return 0;
 }

@@ -5,9 +5,9 @@ DEBUG=-rdynamic -Werror -Wpedantic -pedantic-errors -Wall -Wextra -Wparentheses 
 RELEASE=-ffast-math -ftree-vectorize -Wfatal-errors -DNDEBUG
 
 
-all: UltraTripBased UltraTripBasedRelease
+all: UltraTripBasedDebug UltraTripBasedRelease
 
-UltraTripBased:
+UltraTripBasedDebug:
 	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) -o UltraTripBased UltraTripBased.cpp
 
 UltraTripBasedRelease:

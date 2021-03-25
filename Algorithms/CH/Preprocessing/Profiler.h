@@ -1,6 +1,6 @@
 /**********************************************************************************
 
- Copyright (c) 2020 Tobias Zündorf
+ Copyright (c) 2020-2021 Tobias Zündorf, Jonas Sauer
 
  MIT License
 
@@ -31,7 +31,7 @@
 
 namespace CH {
 
-class NoDebugger {
+class NoProfiler {
 
 public:
     inline void initialize(Data*) noexcept {}
@@ -59,7 +59,7 @@ public:
 
 };
 
-class TimeDebugger : public NoDebugger {
+class TimeProfiler : public NoProfiler {
 
 public:
     inline void start() noexcept {
@@ -76,7 +76,7 @@ private:
 
 };
 
-class ProgressDebugger : public NoDebugger {
+class ProgressProfiler : public NoProfiler {
 
 public:
     inline void initialize(Data* data) noexcept {
@@ -104,10 +104,10 @@ private:
 
 };
 
-class FullDebugger : public NoDebugger {
+class FullProfiler : public NoProfiler {
 
 public:
-    FullDebugger() :
+    FullProfiler() :
         data(0),
         printTime(-1),
         expectedTime(-1),
