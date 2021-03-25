@@ -40,7 +40,7 @@ using namespace Shell;
 class ComputeStopToStopShortcuts : public ParameterizedCommand {
 
 public:
-	ComputeStopToStopShortcuts(BasicShell& shell) :
+    ComputeStopToStopShortcuts(BasicShell& shell) :
         ParameterizedCommand(shell, "computeStopToStopShortcuts", "Computes stop-to-stop transfer shortcuts using ULTRA.") {
         addParameter("Input file");
         addParameter("Output file");
@@ -108,7 +108,7 @@ private:
 class RAPTORToTripBased : public ParameterizedCommand {
 
 public:
-	RAPTORToTripBased(BasicShell& shell) :
+    RAPTORToTripBased(BasicShell& shell) :
         ParameterizedCommand(shell, "raptorToTripBased", "Converts stop-to-stop transfers to event-to-event transfers and saves the resulting network in Trip-Based format.") {
         addParameter("Input file");
         addParameter("Output file");
@@ -150,7 +150,7 @@ private:
 class ComputeEventToEventShortcuts : public ParameterizedCommand {
 
 public:
-	ComputeEventToEventShortcuts(BasicShell& shell) :
+    ComputeEventToEventShortcuts(BasicShell& shell) :
         ParameterizedCommand(shell, "computeEventToEventShortcuts", "Computes event-to-event transfer shortcuts using ULTRA and saves the resulting network in Trip-Based format.") {
         addParameter("Input file");
         addParameter("Output file");

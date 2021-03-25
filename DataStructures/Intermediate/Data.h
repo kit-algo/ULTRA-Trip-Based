@@ -63,6 +63,101 @@ public:
         return data;
     }
 
+    inline static Data FromGTFS(const GTFS::Data& gtfs, const int startDate, const int endDate, const bool ignoreDaysOfOperation = false, const bool ignoreFrequencies = false) noexcept {
+        std::cout << "Extracting timetable from " << dayToString(startDate) << " to " << dayToString(endDate) << ", " << (ignoreDaysOfOperation ? "ignoring" : ", applying") << " days of operation" << std::endl;
+        Data data;
+        Map<std::string, std::vector<int>> calendars = gtfs.unrollCalendarDates(startDate, endDate, ignoreDaysOfOperation);
+        Map<std::string, int> routeIds = gtfs.routeIds();
+        Map<std::string, int> stopIds = gtfs.stopIds();
+        Map<std::string, int> tripIds = gtfs.tripIds();
+        Map<std::string, std::vector<int>> frequencyIds = gtfs.frequencyIds();
+        Map<std::string, std::vector<GTFS::StopTime>> stopTimeTrips;
+        for (const GTFS::Trip& trip : gtfs.trips) {
+            if (stopTimeTrips.contains(trip.tripId)) continue;
+            if (!routeIds.contains(trip.routeId)) continue;
+            if (!calendars.contains(trip.serviceId)) continue;
+            stopTimeTrips.insert(trip.tripId, std::vector<GTFS::StopTime>());
+        }
+        for (const GTFS::StopTime& stopTime : gtfs.stopTimes) {
+            if (!stopIds.contains(stopTime.stopId)) continue;
+            if (!stopTimeTrips.contains(stopTime.tripId)) continue;
+            stopTimeTrips[stopTime.tripId].emplace_back(stopTime);
+        }
+        int timeTravelTrips = 0;
+        int emptyTrips = 0;
+        for (const auto& stopTimeTrip : stopTimeTrips) {
+            const std::string& tripId = stopTimeTrip.first;
+            std::vector<GTFS::StopTime>& stopTimes = stopTimeTrips[tripId];
+            std::sort(stopTimes.begin(), stopTimes.end());
+            int offset = 0;
+            for (size_t i = 1; i < stopTimes.size(); i++) {
+                if (stopTimes[i - 1].departureTime == stopTimes[i].arrivalTime + offset) offset++;
+                stopTimes[i].arrivalTime += offset;
+                stopTimes[i].departureTime += offset;
+                if (stopTimes[i - 1].departureTime >= stopTimes[i].arrivalTime) {
+                    timeTravelTrips++;
+                    stopTimes.clear();
+                }
+            }
+            if (stopTimes.empty()) {
+                emptyTrips++;
+                continue;
+            }
+            const GTFS::Trip& trip = gtfs.trips[tripIds[tripId]];
+            const GTFS::Route& route = gtfs.routes[routeIds[trip.routeId]];
+            for (const int day : calendars[trip.serviceId]) {
+                const int seconds = day * 24 * 60 * 60;
+                if (frequencyIds.contains(tripId)) {
+                    if (ignoreFrequencies) continue;
+                    for (const int i : frequencyIds[tripId]) {
+                        const GTFS::Frequency& frequency = gtfs.frequencies[i];
+                        for (int time = frequency.startTime; time <= frequency.endTime; time += frequency.headwaySecs) {
+                            data.buildTrip(gtfs, stopIds, stopTimes, seconds - stopTimes[0].departureTime + time, trip.name, route.name, route.type);
+                        }
+                    }
+                } else {
+                    data.buildTrip(gtfs, stopIds, stopTimes, seconds, trip.name, route.name, route.type);
+                }
+            }
+        }
+        emptyTrips -= timeTravelTrips;
+        std::cout << "Removed " << String::prettyInt(timeTravelTrips) << " Trips, due to negative travel times." << std::endl;
+        std::cout << "Removed " << String::prettyInt(emptyTrips) << " Trips, because they were empty." << std::endl;
+        data.transferGraph.addVertices(data.stops.size());
+        for (const StopId stop : data.stopIds()) {
+            data.transferGraph.set(Coordinates, stop, data.stops[stop].coordinates);
+        }
+        for (const GTFS::Transfer& transfer : gtfs.transfers) {
+            if (!stopIds.contains(transfer.fromStopId)) continue;
+            if (!stopIds.contains(transfer.toStopId)) continue;
+            const StopId fromStopId = StopId(-(stopIds[transfer.fromStopId] + 1));
+            const StopId toStopId = StopId(-(stopIds[transfer.toStopId] + 1));
+            if (!data.transferGraph.isVertex(fromStopId)) continue;
+            if (!data.transferGraph.isVertex(toStopId)) continue;
+            if (fromStopId == toStopId) {
+                data.stops[fromStopId].minTransferTime = std::max(data.stops[fromStopId].minTransferTime, transfer.minTransferTime);
+            } else {
+                data.transferGraph.addEdge(fromStopId, toStopId).set(TravelTime, transfer.minTransferTime);
+                data.transferGraph.addEdge(toStopId, fromStopId).set(TravelTime, transfer.minTransferTime);
+            }
+        }
+        data.transferGraph.reduceMultiEdgesBy(TravelTime);
+        for (const Vertex vertex : data.transferGraph.vertices()) {
+            for (const Edge a : data.transferGraph.edgesFrom(vertex)) {
+                const Edge b = data.transferGraph.findReverseEdge(a);
+                if (data.transferGraph.get(TravelTime, a) <  data.transferGraph.get(TravelTime, b)) {
+                    data.transferGraph.set(TravelTime, b, data.transferGraph.get(TravelTime, a));
+                } else if (data.transferGraph.get(TravelTime, b) <  data.transferGraph.get(TravelTime, a)) {
+                    data.transferGraph.set(TravelTime, a, data.transferGraph.get(TravelTime, b));
+                }
+            }
+        }
+        data.connectIsolatedStops();
+        data.transferGraph.packEdges();
+        data.validate();
+        return data;
+    }
+
     template<typename CSA>
     inline static Data FromCSA(const CSA& csa, const bool validate = false) noexcept {
         Intermediate::Data data;
@@ -88,6 +183,26 @@ public:
         Graph::move(std::move(graph), data.transferGraph);
         if (validate) data.validate();
         return data;
+    }
+
+protected:
+    inline void buildTrip(const GTFS::Data& gtfs, Map<std::string, int>& stopIds, const std::vector<GTFS::StopTime>& stopTimes, const int offset, const std::string& tripName, const std::string& routeName, const int type) {
+        trips.emplace_back(tripName, routeName, type);
+        Trip& trip = trips.back();
+        for (const GTFS::StopTime& stopTime : stopTimes) {
+            int& stopId = stopIds[stopTime.stopId];
+            if (stopId >= 0) {
+                stops.emplace_back(gtfs.stops[stopId]);
+                stopId = -stops.size();
+            }
+            trip.stopEvents.emplace_back(StopId(-(stopId + 1)), stopTime.arrivalTime + offset, stopTime.departureTime + offset);
+        }
+        if (trip.stopEvents.empty()) {
+            trips.pop_back();
+        } else {
+            trip.stopEvents.front().arrivalTime = trip.stopEvents.front().departureTime - 1;
+            trip.stopEvents.back().departureTime = trip.stopEvents.back().arrivalTime + 1;
+        }
     }
 
 public:

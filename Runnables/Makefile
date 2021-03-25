@@ -5,7 +5,13 @@ DEBUG=-rdynamic -Werror -Wpedantic -pedantic-errors -Wall -Wextra -Wparentheses 
 RELEASE=-ffast-math -ftree-vectorize -Wfatal-errors -DNDEBUG
 
 
-all: UltraTripBasedDebug UltraTripBasedRelease
+all: NetworkDebug NetworkRelease UltraTripBasedDebug UltraTripBasedRelease
+
+NetworkDebug:
+	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) -o Network Network.cpp
+
+NetworkRelease:
+	$(CC) $(FLAGS) $(OPTIMIZATION) $(RELEASE) -o Network Network.cpp
 
 UltraTripBasedDebug:
 	$(CC) $(FLAGS) $(OPTIMIZATION) $(DEBUG) -o UltraTripBased UltraTripBased.cpp
