@@ -20,7 +20,7 @@ This framework contains code for generating Trip-Based transfer shortcuts using 
 
 All of the above commands use custom data formats for loading the public transit network and the transfer graph. As an example we provide the public transit network of Switzerland together with a transfer graph extracted from OpenStreetMap in the appropriate binary format at [https://i11www.iti.kit.edu/PublicTransitData/Switzerland/binaryFiles/](https://i11www.iti.kit.edu/PublicTransitData/Switzerland/binaryFiles/).
 
-Additionally, we provide a second console application, ``Network``, to aid with converting public transit data in our custom format. It includes the following commands:
+Additionally, we provide a second console application, ``Network``, to aid with converting public transit data to our custom format. It includes the following commands:
 
 * ``parseGTFS`` converts GFTS data in CSV format to an intermediate binary format.
 * ``gtfsToIntermediate`` converts GFTS binary data to an intermediate network format that allows for easier manipulation of the network components.
@@ -36,6 +36,8 @@ Additionally, we provide a second console application, ``Network``, to aid with 
 * ``makeOneHopTransfers`` computes one-hop transfers for all stops whose distance is below a specified threshold. This is used to create a transitively closed network for comparison with non-multi-modal algorithms.
 * ``applyMaxTransferSpeed`` applies a maximum transfer speed to all edges in the transfer graph.
 * ``applyConstantTransferSpeed`` applies a constant transfer speed to all edges in the transfer graph and computes the travel times accordingly.
+
+An example script that combines all steps necessary to load a public transit network is provided at ``Runnables/BuildNetworkExample.script``. It can be run from the ``Network`` application using ``runScript BuildNetworkExample.script``. It takes as input GFTS data in CSV format located at ``Networks/Switzerland/GTFS/`` and a road graph in DIMACS format located at ``Networks/Switzerland/OSM/dimacs``.
 
 ## Literature
 
