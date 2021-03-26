@@ -70,7 +70,7 @@ public:
         const int firstDay = stringToDay(getParameter("First day"));
         const int lastDay = stringToDay(getParameter("Last day"));
         const bool useDaysOfOperation = getParameter<bool>("Use days of operation?");
-        const bool useFrequencies = getParameter<bool>("Use frequencies");
+        const bool useFrequencies = getParameter<bool>("Use frequencies?");
 
         GTFS::Data gtfs = GTFS::Data::FromBinary(gtfsDirectory);
         gtfs.printInfo();
