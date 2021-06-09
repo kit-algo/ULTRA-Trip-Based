@@ -198,11 +198,12 @@ public:
         if (queryType == "RAPTOR") {
             CH::CH ch(chFile);
             RAPTOR::Data data(networkFile);
+            data.useImplicitDepartureBufferTimes();
             if (debug) {
-                RAPTOR::ULTRARAPTOR<true, RAPTOR::BucketCHInitialTransfers, RAPTOR::SimpleDebugger> algorithm(data, ch);
+                RAPTOR::ULTRARAPTOR<RAPTOR::SimpleDebugger> algorithm(data, ch);
                 runQueries(algorithm, queries);
             } else {
-                RAPTOR::ULTRARAPTOR<true, RAPTOR::BucketCHInitialTransfers, RAPTOR::NoDebugger> algorithm(data, ch);
+                RAPTOR::ULTRARAPTOR<RAPTOR::NoDebugger> algorithm(data, ch);
                 runQueries(algorithm, queries);
             }
         } else if (queryType == "Trip-Based") {
@@ -246,7 +247,7 @@ private:
             algorithm.run(query.source, query.departureTime, query.target);
             query.queryTime = queryTimer.elapsedMilliseconds();
             query.earliestArrivalTime = algorithm.getEarliestArrivalTime();
-            query.numberOfTrips = algorithm.getEarliestArrivalNumerOfTrips();
+            query.numberOfTrips = algorithm.getEarliestArrivalNumberOfTrips();
         }
         const double time = timer.elapsedMilliseconds();
         std::cout << "Done in " << String::msToString(time) << " (" << String::prettyDouble(time / queries.size(), 1) << "ms per query)" << std::endl;

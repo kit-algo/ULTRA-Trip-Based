@@ -25,6 +25,7 @@
 #include <string>
 
 #include "../../Geometry/Point.h"
+#include "../../GTFS/Entities/Stop.h"
 #include "../../../Helpers/IO/Serialization.h"
 #include "../../../Helpers/String/String.h"
 

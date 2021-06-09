@@ -119,7 +119,7 @@ public:
         return minArrivalTimeByMaxNumberOfUsedVehicles.back();
     }
 
-    inline int getEarliestArrivalNumerOfTrips() const noexcept {
+    inline int getEarliestArrivalNumberOfTrips() const noexcept {
         const int eat = minArrivalTimeByMaxNumberOfUsedVehicles.back();
         for (size_t i = 0; i < minArrivalTimeByMaxNumberOfUsedVehicles.size(); i++) {
             if (minArrivalTimeByMaxNumberOfUsedVehicles[i] == eat) return i;

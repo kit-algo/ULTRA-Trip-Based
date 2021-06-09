@@ -36,6 +36,7 @@
 #include "../Geometry/Point.h"
 #include "../Geometry/Rectangle.h"
 #include "../Geometry/CoordinateTree.h"
+#include "../GTFS/Data.h"
 
 #include "../../Helpers/Assert.h"
 #include "../../Helpers/Timer.h"
