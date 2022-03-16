@@ -1,5 +1,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+# **NOTE: This repository is outdated. Please refer to https://github.com/kit-algo/ULTRA.**
+---
+
 # Integrating ULTRA and Trip-Based Routing
 This C++ framework contains a variant of the Trip-Based Routing algorithm that was combined with ULTRA in order to enable efficient journey planning in multi-modal transportation networks.
 Both the preprocessing algorithms and the query algorithm have a special focus on integrating unlimited paths in the transfer graph and the Trip-Based query algorithm.
